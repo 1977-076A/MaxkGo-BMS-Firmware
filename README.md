@@ -6,7 +6,7 @@ This is the firmware repository containing all firmware source files. There are 
 
 [ENNOID-BMS Bootloader](https://github.com/EnnoidMe/DieBieMS-Bootloader) Same as DieBieMS bootloader. Can be flashed with the BMS Tool in the firmware tab or with an STlink-V2. 
 
-[ENNOID-BMS Configuration tool](https://github.com/EnnoidMe/ENNOID-BMS-Tool) the tool to configure the ENNOID-BMS and upload the bootloader / update the main firmware.
+[MaxkGo-BMS Configuration tool](https://github.com/Maxkgo/MaxkGo-BMS-Tool) the tool to configure the MaxkGo-BMS and upload the bootloader / update the main firmware.
 
 
 # Building with GCC
