@@ -12,7 +12,7 @@ This is the firmware repository containing all firmware source files. There are 
 # Building with GCC
 
 - Install arm-none-eabi-gcc
-- Configure `generalDefines.h` for LV, HV, SS, or SS_LITE versions
+- Configure `generalDefines.h` for MKBMS-LV-MINI, MKBMS-SS-MINI, MKBMS-SS-24S-MINI versions
 - Makefile has rules for flashing with STLink or JLink
 - Could also load using bootloader with binary
 
