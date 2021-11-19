@@ -35,7 +35,8 @@ typedef enum
 	STAT_BLINKSHORTLONG_1000_4,	
 	STAT_ON,
 	STAT_OFF,
-	STAT_ERROR
+	STAT_ERROR,
+	STAT_DIDI
 } STATStateTypedef;
 
 typedef struct {

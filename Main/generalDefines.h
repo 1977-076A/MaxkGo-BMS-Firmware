@@ -4,11 +4,11 @@
 #endif
 
 #ifndef ENNOID_SS
-#define ENNOID_SS					1
+#define ENNOID_SS					0
 #endif
 
 #ifndef ENNOID_LV
-#define ENNOID_LV					0
+#define ENNOID_LV					1
 #endif
 
 #ifndef ENNOID_HV

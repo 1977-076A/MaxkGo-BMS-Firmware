@@ -198,6 +198,7 @@ void modConfigLoadDefaultConfig(modConfigGeneralConfigStructTypedef *configLocat
 	configLocation->lastICNoOfCells					= 0;
 	configLocation->lastICMask					= 0;
 	configLocation->humidityICType 				 	= 0;
+	configLocation->buzzerThreshold									=15;  // voltage threshold to active the buzzer
 
 #elif ENNOID_LV_2
 	configLocation->noOfCellsSeries					= 12;					// Total number of cells in series in the battery pack
@@ -298,6 +299,7 @@ void modConfigLoadDefaultConfig(modConfigGeneralConfigStructTypedef *configLocat
 	configLocation->lastICNoOfCells					= 0;
 	configLocation->lastICMask					= 0;
 	configLocation->humidityICType 					= 0;
+	configLocation->buzzerThreshold									=15;  // voltage threshold to active the buzzer
 
 #elif ENNOID_HV
 	configLocation->noOfCellsSeries					= 12;					// Total number of cells in series in the battery pack
@@ -398,6 +400,7 @@ void modConfigLoadDefaultConfig(modConfigGeneralConfigStructTypedef *configLocat
 	configLocation->lastICNoOfCells					= 0;
 	configLocation->lastICMask					= 0;
 	configLocation->humidityICType 					= 0;
+	configLocation->buzzerThreshold									=15;  // voltage threshold to active the buzzer
 
 
 #elif ENNOID_SS
@@ -498,6 +501,7 @@ void modConfigLoadDefaultConfig(modConfigGeneralConfigStructTypedef *configLocat
 	configLocation->lastICNoOfCells					= 0;					// Last IC cell count (calculated)
 	configLocation->lastICMask					= 0;					// Balance mask used for last IC
 	configLocation->humidityICType 					= 2;					// Humidity sensor IC type
+	configLocation->buzzerThreshold									=15;  // voltage threshold to active the buzzer
 
 #elif ENNOID_SS_24
 	configLocation->noOfCellsSeries					= 24;					// Total number of cells in series in the battery pack
@@ -597,6 +601,7 @@ void modConfigLoadDefaultConfig(modConfigGeneralConfigStructTypedef *configLocat
 	configLocation->lastICNoOfCells					= 0;					// Last IC cell count (calculated)
 	configLocation->lastICMask					= 0;					// Balance mask used for last IC
 	configLocation->humidityICType 					= 2;					// Humidity sensor IC type
+	configLocation->buzzerThreshold									=15;  // voltage threshold to active the buzzer
 
 #elif ENNOID_SS_LITE
 	configLocation->noOfCellsSeries														     = 18;											// Total number of cells in series in the battery pack
@@ -697,6 +702,7 @@ void modConfigLoadDefaultConfig(modConfigGeneralConfigStructTypedef *configLocat
 	configLocation->lastICNoOfCells																 = 0;
 	configLocation->lastICMask																		 = 0;
 	configLocation->humidityICType 																 = 2;
+	configLocation->buzzerThreshold									=15;  // voltage threshold to active the buzzer
 	
 #endif
 
