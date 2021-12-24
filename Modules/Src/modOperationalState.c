@@ -474,8 +474,15 @@ void modOperationalStateTask(void) {
 		modOperationalStateSetNewState(OP_STATE_ERROR);	
 		modOperationalStateUpdateStates();
 	}
-	
-	
+
+	if (modOperationalStateGeneralConfigHandle->buzzerSignalSource && ((modOperationalStateGeneralStateOfCharge->generalStateOfCharge < modOperationalStateGeneralConfigHandle->buzzerThreshold)))
+	{
+		if (STAT_RESET == modEffectGetState(STAT_BUZZER)) // lowest priority
+		{
+			modEffectChangeState(STAT_BUZZER, STAT_DIDI); // Indicate LOW voltage
+		}
+	}
+
 	// Move the button pressed state to the status struct
 	modOperationalStatePackStatehandle->powerOnLongButtonPress = modPowerStateGetLongButtonPressState(); 
 	

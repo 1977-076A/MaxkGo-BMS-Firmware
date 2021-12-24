@@ -24,7 +24,7 @@
 #endif
 
 #ifndef ENNOID_SS_24
-#define ENNOID_SS_24					0
+#define ENNOID_SS_24					1
 #endif
 
 // Firmware version
@@ -38,7 +38,7 @@
 
 // Hardware names and limits
 #if ENNOID_LV
-  #define HW_NAME "ENNOID-LV"
+  #define HW_NAME "MKBMS-LV-MINI"
 	#define HW_LIM_CELL_BALANCE_MAX_SIMULTANEOUS_DISCHARGE 18
 	#define HW_LIM_CELL_MONITOR_IC_COUNT                   18
 	#define HW_LIM_MIN_NOT_USED_DELAY                      5000
@@ -73,7 +73,7 @@
 #endif
 
 #if ENNOID_SS
-  #define HW_NAME "ENNOID-SS"
+  #define HW_NAME "MKBMS-SS-MINI"
 	#define HW_LIM_CELL_BALANCE_MAX_SIMULTANEOUS_DISCHARGE 18
 	#define HW_LIM_CELL_MONITOR_IC_COUNT                   1
 	#define HW_LIM_MIN_NOT_USED_DELAY                      5000
@@ -86,7 +86,7 @@
 #endif
 
 #if ENNOID_SS_24
-  #define HW_NAME "ENNOID-SS-24"
+  #define HW_NAME "MKBMS-SS-24S-MINI"
 	#define HW_LIM_CELL_BALANCE_MAX_SIMULTANEOUS_DISCHARGE 18
 	#define HW_LIM_CELL_MONITOR_IC_COUNT                   2
 	#define HW_LIM_MIN_NOT_USED_DELAY                      5000
