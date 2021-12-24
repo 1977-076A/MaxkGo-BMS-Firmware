@@ -22,11 +22,6 @@ void modEffectChangeState(STATIDTypedef id, STATStateTypedef NewState) {
 	}
 }
 
-STATStateTypedef modEffectGetState(STATIDTypedef id)
-{
-	return STATStatuses[id].State;
-}
-
 void modEffectChangeStateError(STATIDTypedef id, STATStateTypedef NewState, uint8_t errorCode) {
 	static uint32_t error = 0;
 	
@@ -71,9 +66,6 @@ void modEffectTask(void) {
 			case STAT_ERROR:
 				driverHWSetOutput((STATIDTypedef)LEDPointer,modEffectTaskError(200,1,LEDPointer));
 				break;				
-			case STAT_DIDI:
-				driverHWSetOutput((STATIDTypedef)LEDPointer,modEffectTaskFlashDiDi());
-				break;				
 			default:
 				break;
 		}
@@ -107,34 +99,6 @@ STATStateTypedef modEffectTaskFlashFast(void) {
 		}
 	}
 	
-	return LEDOnState;
-}
-
-STATStateTypedef modEffectTaskFlashDiDi()
-{
-	static uint32_t lastTick = 0;
-	static STATStateTypedef LEDOnState = STAT_RESET;
-
-	uint32_t gap = HAL_GetTick() - lastTick;
-	if (gap > 2000)
-	{
-		gap = 0;
-		lastTick= HAL_GetTick();
-		LEDOnState = STAT_SET;
-	}
-	else if (gap > 200)
-	{
-		LEDOnState = STAT_RESET;
-	}
-	else if (gap > 120)
-	{
-		LEDOnState = STAT_SET;
-	}
-	else if (gap > 80)
-	{
-		LEDOnState = STAT_RESET;
-	}
-
 	return LEDOnState;
 }
 

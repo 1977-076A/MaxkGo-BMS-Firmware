@@ -80,9 +80,9 @@ void modDisplayShowInfo(modDisplayInfoType newState, modDisplayDataTypedef modDi
 				libGraphicsSetTextColor_0(WHITE);
 				libGraphicsSetCursor(10,SSD1306_LCDHEIGHT/2+14);
 				libGraphicsWrite('V');
-				libGraphicsWrite('1');
+				libGraphicsWrite(FW_VERSION_MAJOR+48);
 				libGraphicsWrite('.');
-				libGraphicsWrite('4');
+				libGraphicsWrite(FW_VERSION_MINOR+48);
 				break;
 			case DISP_MODE_LOAD:
 				driverSWSSD1306ClearDisplay();
@@ -168,7 +168,22 @@ void modDisplayShowInfo(modDisplayInfoType newState, modDisplayDataTypedef modDi
 				libGraphicsWrite('%');
 				libGraphicsSetTextSize(0);
 				libGraphicsSetTextColor_0(INVERSE);
-				libGraphicsSetCursor(4,57);
+			//Display cell high voltage
+				libGraphicsSetCursor(7,0);
+				libGraphicsWrite('C');
+				libGraphicsWrite('H');
+				libGraphicsWrite(':');
+				modDisplayWrite(modDisplayData.HighestCellVoltage,2);
+				libGraphicsWrite('V');
+				libGraphicsWrite(' ');
+			//Display cell low voltage
+				libGraphicsWrite('C');
+				libGraphicsWrite('L');
+				libGraphicsWrite(':');
+				modDisplayWrite(modDisplayData.LowestCellVoltage,2);
+				libGraphicsWrite('V');
+			//Display current
+				libGraphicsSetCursor(7,57);
 				libGraphicsWrite('I');
 				libGraphicsWrite(':');
 				modDisplayWrite(modDisplayData.Current,1);
@@ -270,9 +285,9 @@ void modDisplayShowInfo(modDisplayInfoType newState, modDisplayDataTypedef modDi
 				libGraphicsSetTextColor_0(INVERSE);
 				libGraphicsSetCursor(4,57);
 				libGraphicsWrite('C');
-				libGraphicsWrite('V');
+				libGraphicsWrite('H');
 				libGraphicsWrite(':');
-				modDisplayWrite(modDisplayData.AverageCellVoltage,3);
+				modDisplayWrite(modDisplayData.HighestCellVoltage,3);
 				libGraphicsWrite('V');
 				libGraphicsWrite(' ');
 				libGraphicsWrite(30);

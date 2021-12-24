@@ -37,9 +37,13 @@
 #include <math.h>
 
 // Settings
-#define CAN_STATUS_MSG_INT_MS		1
-#define RX_CAN_FRAMES_SIZE	    255       // max 255
-#define RX_CAN_BUFFER_SIZE	    PACKET_MAX_PL_LEN
+#define CAN_STATUS_MSG_INT_MS			1
+#define RX_CAN_FRAMES_SIZE	    		255       // max 255
+#define RX_CAN_BUFFER_SIZE	    		PACKET_MAX_PL_LEN
+
+// Settings
+#define CAN_STATUS_MSGS_TO_STORE		10
+#define CAN_BMS_STATUS_MSGS_TO_STORE		185
 
 void		modCANInit(modPowerElectronicsPackStateTypedef *packState, modConfigGeneralConfigStructTypedef *generalConfigPointer);
 void		modCANTask(void);
@@ -69,5 +73,20 @@ void		modCANOpenChargerCheckPresent(void);
 void		modCANOpenBMSSendHeartBeat(void);
 void		modCANOpenChargerStartNode(void);
 void		modCANOpenChargerSetCurrentVoltageReady(float current,float voltage,bool ready);
+
+uint16_t 	modCANGetVESCCurrent(void);
+
+can_status_msg *comm_can_get_status_msg_index(int index);
+can_status_msg *comm_can_get_status_msg_id(int id);
+can_status_msg_2 *comm_can_get_status_msg_2_index(int index);
+can_status_msg_2 *comm_can_get_status_msg_2_id(int id);
+can_status_msg_3 *comm_can_get_status_msg_3_index(int index);
+can_status_msg_3 *comm_can_get_status_msg_3_id(int id);
+can_status_msg_4 *comm_can_get_status_msg_4_index(int index);
+can_status_msg_4 *comm_can_get_status_msg_4_id(int id);
+can_status_msg_5 *comm_can_get_status_msg_5_index(int index);
+can_status_msg_5 *comm_can_get_status_msg_5_id(int id);
+
+
 
 #endif /* MODCAN_H_ */

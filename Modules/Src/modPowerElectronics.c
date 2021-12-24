@@ -23,6 +23,9 @@
 
 modPowerElectronicsPackStateTypedef *modPowerElectronicsPackStateHandle;
 modConfigGeneralConfigStructTypedef *modPowerElectronicsGeneralConfigHandle;
+
+uint32_t modPowerElectronicsCANCurrentVESCLastTick;
+
 uint32_t modPowerElectronicsMeasureIntervalLastTick;
 
 uint32_t modPowerElectronicsChargeRetryLastTick;
@@ -227,7 +230,9 @@ bool modPowerElectronicsTask(void) {
 					driverSWHTC1080StartMeasurement();
 				}
 			};
-		#else
+		#endif
+
+		#if(HAS_ON_BOARD_NTC)
 			driverHWADCGetNTCValue(&modPowerElectronicsPackStateHandle->temperatures[0],modPowerElectronicsGeneralConfigHandle->NTC25DegResistance[modConfigNTCGroupMasterPCB],modPowerElectronicsGeneralConfigHandle->NTCTopResistor[modConfigNTCGroupMasterPCB],modPowerElectronicsGeneralConfigHandle->NTCBetaFactor[modConfigNTCGroupMasterPCB],25.0f);
 		#endif
 		
@@ -311,7 +316,6 @@ bool modPowerElectronicsSetDisCharge(bool newState) {
 		modPowerElectronicsDisChargeLCRetryLastTick = HAL_GetTick();
 
 		if(modPowerElectronicsFirstDischarge == false){
-				// modOperationalStateSetNewState(OP_STATE_ERROR);   ////////// for test!!!!!
 			modPowerElectronicsPackStateHandle->disChargeLCAllowed = false;
 		}
 		return false;	// Load voltage too low (output not precharged enough) return whether or not precharge is needed.
@@ -833,6 +837,7 @@ float modPowerElectronicsMapVariableFloat(float inputVariable, float inputLowerL
 
 void modPowerElectronicsInitISL(void) {
 	// Init BUS monitor
+
 	driverSWISL28022InitStruct ISLInitStruct;
 	ISLInitStruct.ADCSetting = ADC_128_64010US;
 	ISLInitStruct.busVoltageRange = BRNG_60V_1;
@@ -840,6 +845,21 @@ void modPowerElectronicsInitISL(void) {
 	ISLInitStruct.Mode = MODE_SHUNTANDBUS_CONTINIOUS;
 	driverSWISL28022Init(ISL28022_MASTER_ADDRES,ISL28022_MASTER_BUS,ISLInitStruct);
 }
+
+/*
+void modPowerElectronicsInitINA(void) {
+
+	// Init BUS monitor
+	driverSWINA226InitStruct INAInitStruct;
+	INAInitStruct.ADCSetting = ADC_128_64010US;
+	INAInitStruct.busVoltageRange = BRNG_60V_1;
+	INAInitStruct.currentShuntGain = PGA_8_320MV;
+	ISNAInitStruct.Mode = MODE_SHUNTANDBUS_CONTINIOUS;
+
+	driverSWINA226Init(ISL28022_MASTER_ADDRES,ISL28022_MASTER_BUS,INAInitStruct);
+
+}
+*/
 
 void modPowerElectronicsCheckPackSOA(void) {
 	static float hysteresysBMS       = -2.0f;
@@ -1261,7 +1281,7 @@ void modPowerElectronicsSamplePackVoltage(float *voltagePointer) {
 			*voltagePointer = 0.0f;
 			break;
 		case sourcePackVoltageINA226:
-				driverSWISL28022GetBusVoltage(ISL28022_MASTER_ADDRES,ISL28022_MASTER_BUS,voltagePointer,modPowerElectronicsGeneralConfigHandle->voltageLCOffset, modPowerElectronicsGeneralConfigHandle->voltageLCFactor);
+				//driverSWINA226GetBusVoltage(ISL28022_MASTER_ADDRES,ISL28022_MASTER_BUS,voltagePointer,modPowerElectronicsGeneralConfigHandle->voltageLCOffset, modPowerElectronicsGeneralConfigHandle->voltageLCFactor);
 			break;		
 		default:
 			break;
@@ -1270,6 +1290,7 @@ void modPowerElectronicsSamplePackVoltage(float *voltagePointer) {
 
 float modPowerElectronicsCalcPackCurrent(void){
 	float returnCurrent = 0.0f;
+	float returnCurrentTemp = 0.0f;
 
 	switch(modPowerElectronicsGeneralConfigHandle->packCurrentDataSource){
 		case sourcePackCurrentISL28022:
@@ -1282,6 +1303,21 @@ float modPowerElectronicsCalcPackCurrent(void){
 			break;
 		case sourcePackCurrentINA226:
 			returnCurrent = modPowerElectronicsPackStateHandle->loCurrentLoadCurrent;
+			break;
+		case sourcePackCurrentCANVESC:
+			if(modPowerStateChargerDetected()){
+				returnCurrent = modPowerElectronicsPackStateHandle->loCurrentLoadCurrent;
+			}else{
+				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+					can_status_msg_4 *msg = comm_can_get_status_msg_4_index(i);
+
+					if (msg->id >= 0 && modDelayTick1msNoRST(&modPowerElectronicsCANCurrentVESCLastTick,2000)) {
+						returnCurrentTemp += msg->current_in;
+					}
+				}
+
+				returnCurrent = returnCurrentTemp/CAN_STATUS_MSGS_TO_STORE;
+			}
 			break;
 		default:
 			break;

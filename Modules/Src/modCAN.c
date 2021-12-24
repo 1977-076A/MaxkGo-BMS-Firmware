@@ -47,6 +47,37 @@ ChargerStateTypedef chargerOpStateNew = opInit;
 modPowerElectronicsPackStateTypedef *modCANPackStateHandle;
 modConfigGeneralConfigStructTypedef *modCANGeneralConfigHandle;
 
+// Private variables
+static can_status_msg stat_msgs[CAN_STATUS_MSGS_TO_STORE];
+static can_status_msg_2 stat_msgs_2[CAN_STATUS_MSGS_TO_STORE];
+static can_status_msg_3 stat_msgs_3[CAN_STATUS_MSGS_TO_STORE];
+static can_status_msg_4 stat_msgs_4[CAN_STATUS_MSGS_TO_STORE];
+static can_status_msg_5 stat_msgs_5[CAN_STATUS_MSGS_TO_STORE];
+
+/*
+bool modCANPing(uint8_t controller_id, HW_TYPE *hw_type) {
+	ping_tp = chThdGetSelfX();
+	chEvtGetAndClearEvents(ALL_EVENTS);
+
+	uint8_t buffer[1];
+	buffer[0] = backup.config.controller_id;
+	comm_can_transmit_eid(controller_id |
+			((uint32_t)CAN_PACKET_PING << 8), buffer, 1);
+
+	int ret = chEvtWaitAnyTimeout(1 << 29, TIME_MS2I(10));
+	ping_tp = 0;
+
+	if (ret != 0) {
+		if (hw_type) {
+			*hw_type = ping_hw_last;
+		}
+	}
+
+	return ret != 0;
+}
+
+*/
+
 void modCANInit(modPowerElectronicsPackStateTypedef *packState, modConfigGeneralConfigStructTypedef *generalConfigPointer){
   static CanTxMsgTypeDef        TxMessage;
   static CanRxMsgTypeDef        RxMessage;
@@ -274,7 +305,7 @@ void modCANSendStatusVESC(void){
 		
 		uint8_t cellPointer = 0;
 		uint8_t totalNoOfCells = modCANGeneralConfigHandle->noOfCellsSeries*modCANGeneralConfigHandle->noOfParallelModules;
-		for(cellPointer = 0; cellPointer < totalNoOfCells; cellPointer++){
+		while(cellPointer < totalNoOfCells){
 			send_index = 0;
 			buffer[send_index++] = cellPointer;
 			buffer[send_index++] = totalNoOfCells;
@@ -345,8 +376,8 @@ void modCANSendStatusVESC(void){
 		send_index = 0;
 		libBufferAppend_float16(buffer, modCANPackStateHandle->cellVoltageLow, 1e3, &send_index);
 		libBufferAppend_float16(buffer, modCANPackStateHandle->cellVoltageHigh, 1e3, &send_index);
-		buffer[send_index++] = (uint8_t)modCANPackStateHandle->SoC * 255.0;
-		buffer[send_index++] = (uint8_t)(1 * 255.0);
+		buffer[send_index++] = (uint8_t) ((modCANPackStateHandle->SoC/100) * 255.0);
+		buffer[send_index++] = (uint8_t) (1 * 255.0);
 		buffer[send_index++] = (int8_t) modCANPackStateHandle->tempBatteryHigh;
 		buffer[send_index++] =
 				(modCANPackStateHandle->chargeDesired << 0) | //To do: Define isCharging bool instead of chargeDesired...
@@ -397,7 +428,7 @@ void modCANSubTaskHandleCommunication(void) {
 			uint8_t destinationID = modCANGetDestinationID(rxmsg);
 			CAN_PACKET_ID cmd = modCANGetPacketID(rxmsg);
 
-			if(destinationID == modCANGeneralConfigHandle->CANID) {
+			if(destinationID == 255 || destinationID == modCANGeneralConfigHandle->CANID) {
 				switch(cmd) {
 					case CAN_PACKET_FILL_RX_BUFFER:
   					memcpy(modCANRxBuffer + rxmsg.Data[0], rxmsg.Data + 1, rxmsg.DLC - 1);
@@ -426,7 +457,7 @@ void modCANSubTaskHandleCommunication(void) {
 						crc_low = rxmsg.Data[ind++];
 
 						if(libCRCCalcCRC16(modCANRxBuffer, rxbuf_len) == ((unsigned short) crc_high << 8 | (unsigned short) crc_low)) {
-
+							
 							if(commands_send) {
 								modCommandsSendPacket(modCANRxBuffer, rxbuf_len);
 							}else{
@@ -440,18 +471,191 @@ void modCANSubTaskHandleCommunication(void) {
 						ind = 0;
 						modCANRxBufferLastID = rxmsg.Data[ind++];
 						commands_send = rxmsg.Data[ind++];
-
+						
 						if(commands_send) {
 							modCommandsSendPacket(rxmsg.Data + ind, rxmsg.DLC - ind);
 						}else{
 							modCommandsSetSendFunction(modCANSendPacketWrapper);
 							modCommandsProcessPacket(rxmsg.Data + ind, rxmsg.DLC - ind);
 						}
-						break;
+
+					case CAN_PACKET_PING: {
+						uint8_t buffer[2];
+						buffer[0] = modCANGeneralConfigHandle->CANID;
+						buffer[1] = HW_TYPE_VESC_BMS;
+						modCANTransmitExtID(modCANGetCANID(modCANGeneralConfigHandle->CANID,CAN_PACKET_PONG), buffer, 2);
+						} 
+						break;/*
+
+					case CAN_PACKET_PONG:
+						// data8[0]; // Sender ID
+						if (ping_tp) {
+							if (len >= 2) {
+								ping_hw_last = data8[1];
+							} else {
+								ping_hw_last = HW_TYPE_VESC_BMS;
+							}
+							chEvtSignal(ping_tp, 1 << 29);
+						}
+						break;*/
+
+					case CAN_PACKET_SHUTDOWN: {
+						// TODO: Implement when hw has power switch
+						} break;
 					default:
 						break;
 					}
 				}
+
+				switch (cmd) {
+				case CAN_PACKET_PING:
+					//sleep_reset();
+					break;
+
+				case CAN_PACKET_STATUS:
+					//sleep_reset();
+
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						can_status_msg *stat_tmp = &stat_msgs[i];
+						if (stat_tmp->id == destinationID || stat_tmp->id == -1) {
+							ind = 0;
+							stat_tmp->id = destinationID;
+							stat_tmp->rx_time = HAL_GetTick();
+							stat_tmp->rpm = (float)libBufferGet_int32(rxmsg.Data, &ind);
+							stat_tmp->current = (float)libBufferGet_int16(rxmsg.Data, &ind) / 10.0;
+							stat_tmp->duty = (float)libBufferGet_int16(rxmsg.Data, &ind) / 1000.0;
+							break;
+						}
+					}
+					break;
+
+				case CAN_PACKET_STATUS_2:
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						can_status_msg_2 *stat_tmp_2 = &stat_msgs_2[i];
+						if (stat_tmp_2->id == destinationID || stat_tmp_2->id == -1) {
+							ind = 0;
+							stat_tmp_2->id = destinationID;
+							stat_tmp_2->rx_time = HAL_GetTick();
+							stat_tmp_2->amp_hours = (float)libBufferGet_int32(rxmsg.Data, &ind) / 1e4;
+							stat_tmp_2->amp_hours_charged = (float)libBufferGet_int32(rxmsg.Data, &ind) / 1e4;
+							break;
+						}
+					}
+					break;
+
+				case CAN_PACKET_STATUS_3:
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						can_status_msg_3 *stat_tmp_3 = &stat_msgs_3[i];
+						if (stat_tmp_3->id == destinationID || stat_tmp_3->id == -1) {
+							ind = 0;
+							stat_tmp_3->id = destinationID;
+							stat_tmp_3->rx_time = HAL_GetTick();
+							stat_tmp_3->watt_hours = (float)libBufferGet_int32(rxmsg.Data, &ind) / 1e4;
+							stat_tmp_3->watt_hours_charged = (float)libBufferGet_int32(rxmsg.Data, &ind) / 1e4;
+							break;
+						}
+					}
+					break;
+
+				case CAN_PACKET_STATUS_4:
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						can_status_msg_4 *stat_tmp_4 = &stat_msgs_4[i];
+						if (stat_tmp_4->id == destinationID || stat_tmp_4->id == -1) {
+							ind = 0;
+							stat_tmp_4->id = destinationID;
+							stat_tmp_4->rx_time = HAL_GetTick();
+							stat_tmp_4->temp_fet = (float)libBufferGet_int16(rxmsg.Data, &ind) / 10.0;
+							stat_tmp_4->temp_motor = (float)libBufferGet_int16(rxmsg.Data, &ind) / 10.0;
+							stat_tmp_4->current_in = (float)libBufferGet_int16(rxmsg.Data, &ind) / 10.0;
+							stat_tmp_4->pid_pos_now = (float)libBufferGet_int16(rxmsg.Data, &ind) / 50.0;
+							break;
+						}
+					}
+					break;
+
+				case CAN_PACKET_STATUS_5:
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						can_status_msg_5 *stat_tmp_5 = &stat_msgs_5[i];
+						if (stat_tmp_5->id == destinationID || stat_tmp_5->id == -1) {
+							ind = 0;
+							stat_tmp_5->id = destinationID;
+							stat_tmp_5->rx_time = HAL_GetTick();
+							stat_tmp_5->tacho_value = libBufferGet_int32(rxmsg.Data, &ind);
+							stat_tmp_5->v_in = (float)libBufferGet_int16(rxmsg.Data, &ind) / 1e1;
+							break;
+						}
+					}
+					break;
+/*
+				case CAN_PACKET_BMS_SOC_SOH_TEMP_STAT: {
+					int32_t ind = 0;
+					bms_soc_soh_temp_stat msg;
+					msg.id = id;
+					msg.rx_time = chVTGetSystemTime();
+					msg.v_cell_min = buffer_get_float16(data8, 1e3, &ind);
+					msg.v_cell_max = buffer_get_float16(data8, 1e3, &ind);
+					msg.soc = ((float)((uint8_t)data8[ind++])) / 255.0;
+					msg.soh = ((float)((uint8_t)data8[ind++])) / 255.0;
+					msg.t_cell_max = (float)((int8_t)data8[ind++]);
+					uint8_t stat = data8[ind++];
+					msg.is_charging = (stat >> 0) & 1;
+					msg.is_balancing = (stat >> 1) & 1;
+					msg.is_charge_allowed = (stat >> 2) & 1;
+
+					// Do not go to sleep when some other pack is charging or balancing.
+					if (msg.is_charging || msg.is_balancing) {
+						sleep_reset();
+					}
+
+					// Find BMS with lowest cell voltage
+					if (bms_stat_v_cell_min.id < 0 ||
+							UTILS_AGE_S(bms_stat_v_cell_min.rx_time) > 10.0 ||
+							bms_stat_v_cell_min.v_cell_min > msg.v_cell_min) {
+						bms_stat_v_cell_min = msg;
+					} else if (bms_stat_v_cell_min.id == msg.id) {
+						bms_stat_v_cell_min = msg;
+					}
+
+					for (int i = 0;i < CAN_BMS_STATUS_MSGS_TO_STORE;i++) {
+						bms_soc_soh_temp_stat *msg_buf = &bms_stat_msgs[i];
+
+						// Reset ID after 10 minutes of silence
+						if (msg_buf->id != -1 && UTILS_AGE_S(msg_buf->rx_time) > 60 * 10) {
+							msg_buf->id = -1;
+						}
+
+						if (msg_buf->id == id || msg_buf->id == -1) {
+							*msg_buf = msg;
+							break;
+						}
+					}
+					} break;
+
+				case CAN_PACKET_PSW_STAT: {
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						psw_status *msg = &psw_stat[i];
+						if (msg->id == id || msg->id == -1) {
+							ind = 0;
+							msg->id = id;
+							msg->rx_time = chVTGetSystemTime();
+
+							msg->v_in = buffer_get_float16(data8, 10.0, &ind);
+							msg->v_out = buffer_get_float16(data8, 10.0, &ind);
+							msg->temp = buffer_get_float16(data8, 10.0, &ind);
+							msg->is_out_on = (data8[ind] >> 0) & 1;
+							msg->is_pch_on = (data8[ind] >> 1) & 1;
+							msg->is_dsc_on = (data8[ind] >> 2) & 1;
+							ind++;
+							break;
+						}
+					}
+				} break;
+				*/
+				default:
+					break;
+				}
+
+			
 		}
 
 		if(modCANRxFrameRead >= RX_CAN_FRAMES_SIZE)
@@ -749,6 +953,152 @@ void modCANOpenChargerSetCurrentVoltageReady(float current,float voltage,bool re
 	modCANTransmitStandardID(0x040A, buffer, sendIndex);
 }
 
+uint16_t modCANGetVESCCurrent(void){
+	//return stat_tmp->current;
+}
 
+
+
+can_status_msg *comm_can_get_status_msg_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &stat_msgs[index];
+	} else {
+		return 0;
+	}
+}
+
+can_status_msg *comm_can_get_status_msg_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (stat_msgs[i].id == id) {
+			return &stat_msgs[i];
+		}
+	}
+
+	return 0;
+}
+
+can_status_msg_2 *comm_can_get_status_msg_2_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &stat_msgs_2[index];
+	} else {
+		return 0;
+	}
+}
+
+can_status_msg_2 *comm_can_get_status_msg_2_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (stat_msgs_2[i].id == id) {
+			return &stat_msgs_2[i];
+		}
+	}
+
+	return 0;
+}
+
+can_status_msg_3 *comm_can_get_status_msg_3_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &stat_msgs_3[index];
+	} else {
+		return 0;
+	}
+}
+
+can_status_msg_3 *comm_can_get_status_msg_3_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (stat_msgs_3[i].id == id) {
+			return &stat_msgs_3[i];
+		}
+	}
+
+	return 0;
+}
+
+can_status_msg_4 *comm_can_get_status_msg_4_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &stat_msgs_4[index];
+	} else {
+		return 0;
+	}
+}
+
+can_status_msg_4 *comm_can_get_status_msg_4_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (stat_msgs_4[i].id == id) {
+			return &stat_msgs_4[i];
+		}
+	}
+
+	return 0;
+}
+
+can_status_msg_5 *comm_can_get_status_msg_5_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &stat_msgs_5[index];
+	} else {
+		return 0;
+	}
+}
+
+can_status_msg_5 *comm_can_get_status_msg_5_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (stat_msgs_5[i].id == id) {
+			return &stat_msgs_5[i];
+		}
+	}
+
+	return 0;
+}
+/*
+bms_soc_soh_temp_stat *comm_can_get_bms_soc_soh_temp_stat_index(int index) {
+	if (index < CAN_BMS_STATUS_MSGS_TO_STORE) {
+		return &bms_stat_msgs[index];
+	} else {
+		return 0;
+	}
+}
+
+bms_soc_soh_temp_stat *comm_can_get_bms_soc_soh_temp_stat_id(int id) {
+	for (int i = 0;i < CAN_BMS_STATUS_MSGS_TO_STORE;i++) {
+		if (bms_stat_msgs[i].id == id) {
+			return &bms_stat_msgs[i];
+		}
+	}
+
+	return 0;
+}
+
+bms_soc_soh_temp_stat *comm_can_get_bms_stat_v_cell_min(void) {
+	return &bms_stat_v_cell_min;
+}
+
+psw_status *comm_can_get_psw_status_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &psw_stat[index];
+	} else {
+		return 0;
+	}
+}
+
+psw_status *comm_can_get_psw_status_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (psw_stat[i].id == id) {
+			return &psw_stat[i];
+		}
+	}
+
+	return 0;
+}
+
+void comm_can_psw_switch(int id, bool is_on, bool plot) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer[send_index++] = is_on ? 1 : 0;
+	buffer[send_index++] = plot ? 1 : 0;
+
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_PSW_SWITCH << 8),
+			buffer, send_index);
+}
+*/
 
 

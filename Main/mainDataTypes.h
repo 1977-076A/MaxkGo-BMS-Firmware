@@ -607,18 +607,18 @@ typedef enum {
 } CAN_ID_STYLE;
 
 typedef enum {
-	OP_STATE_INIT = 0,											// 0
-	OP_STATE_CHARGING,											// 1
-	OP_STATE_PRE_CHARGE,										// 2
-	OP_STATE_LOAD_ENABLED,									// 3
-	OP_STATE_BATTERY_DEAD,									// 4
-	OP_STATE_POWER_DOWN,										// 5
-	OP_STATE_EXTERNAL,											// 6
-	OP_STATE_ERROR,													// 7
-	OP_STATE_ERROR_PRECHARGE,								// 8
-	OP_STATE_BALANCING,											// 9
-	OP_STATE_CHARGED,												// 10
-	OP_STATE_FORCEON,												// 11
+	OP_STATE_INIT = 0,		// 0
+	OP_STATE_CHARGING,		// 1
+	OP_STATE_PRE_CHARGE,		// 2
+	OP_STATE_LOAD_ENABLED,		// 3
+	OP_STATE_BATTERY_DEAD,		// 4
+	OP_STATE_POWER_DOWN,		// 5
+	OP_STATE_EXTERNAL,		// 6
+	OP_STATE_ERROR,			// 7
+	OP_STATE_ERROR_PRECHARGE,	// 8
+	OP_STATE_BALANCING,		// 9
+	OP_STATE_CHARGED,		// 10
+	OP_STATE_FORCEON,		// 11
 } OperationalStateTypedef;
 
 typedef enum {
@@ -704,6 +704,36 @@ typedef struct {
 	float duty;
 } can_status_msg;
 
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float amp_hours;
+	float amp_hours_charged;
+} can_status_msg_2;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float watt_hours;
+	float watt_hours_charged;
+} can_status_msg_3;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float temp_fet;
+	float temp_motor;
+	float current_in;
+	float pid_pos_now;
+} can_status_msg_4;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float v_in;
+	int32_t tacho_value;
+} can_status_msg_5;
+
 typedef enum {
 	MOTE_PACKET_BATT_LEVEL = 0,
 	MOTE_PACKET_BUTTONS,
@@ -734,6 +764,11 @@ typedef enum {
 } configExtEnableStateTypeEnum;
 
 typedef enum {
+  	electricVehicle = 0,
+	energyStorage
+} configBMSApplication;
+
+typedef enum {
   opStateChargingModeCharging = 0,
 	opStateChargingModeNormal
 } configChargerEnableStateTypeEnum;
@@ -758,7 +793,8 @@ typedef enum {
 	sourcePackCurrentISL28022,
 	sourcePackCurrentCANDieBieShunt,
 	sourcePackCurrentCANIsaBellenHuette,
-	sourcePackCurrentINA226
+	sourcePackCurrentINA226,
+	sourcePackCurrentCANVESC
 } configPackCurrentDataSourceEnum;
 
 typedef enum {
@@ -824,85 +860,38 @@ typedef enum {
 
 
 
+
+
 typedef struct __attribute__((packed)) {
 	// ID if this BMS (e.g. on the CAN-bus)
 	uint8_t controller_id;
 
-	// Rate at which status messages are sent on the CAN-bus
-	uint32_t send_can_status_rate_hz;
 
 	configCANSpeedTypeEnum can_baud_rate;
 
-	BMS_BALANCE_MODE balance_mode;
 
 	// Number of cells in series
 	int cell_num;
 
-	// Channel of the first cell
-	int cell_first_index;
-
-	// Maximum simultaneous balancing channels
-	int max_bal_ch;
-
-	// Distributed balancing
-	bool dist_bal;
-
-	// Start balancing if cell voltage is this much above the minimum cell voltage
-	float vc_balance_start;
-
-	// Stop balancing when cell voltage is this much above the minimum cell voltage
-	float vc_balance_end;
-
-	// Start charging when max cell voltage is below this voltage
-	float vc_charge_start;
-
-	// End charging when max cell voltage is above this voltage
-	float vc_charge_end;
-
-	// Only allow charging if all cells are above this voltage
-	float vc_charge_min;
-
-	// Only allow balancing if all cells are above this voltage
-	float vc_balance_min;
-
-	// Only allow balancing when the current magnitude is below this value
-	float balance_max_current;
-
-	// Current must be above this magnitude for the Ah and Wh couters to run
-	float min_current_ah_wh_cnt;
-
-	// Enter sleep mode when the current magnitude is below this value
-	float min_current_sleep;
-
-	// Charge port voltage at which a charger is considered plugged in
-	float v_charge_detect;
+	// Number of temperature sensors per module
+	int temp_num;
+	float balance_start_voltage;
+	float balance_difference_threshold;
+	float soft_overvoltage;
+	float soft_undervoltage;
+	float hard_overvoltage;
+	float hard_undervoltage;
 
 	// Only allow charging when the cell temperature is below this value
 	float t_charge_max;
-
-	// Current measurement mode
-	I_MEASURE_MODE i_measure_mode;
-
-	// Shunt resistance on external PCB
-	float ext_shunt_res;
-
-	// Shunt amplifier gain on external PCB
-	float ext_shunt_gain;
-
-	// Precharge output voltage divider top resistor
-	float ext_pch_r_top; // TODO
-
-	// Precharge output voltage divider bottom resistor
-	float ext_pch_r_bot; // TODO
-
-	// Reset sleep timeout to this value at events that prevent sleeping
-	int sleep_timeout_reset_ms;
+	float t_discharge_max;
 
 	// Maximum allowed charging current
-	float max_charge_current;
+	float not_used_current_threshold;
+	// Reset sleep timeout to this value at events that prevent sleeping
+	int not_used_timeout;
 
-	// Filter constant for SoC filter
-	float soc_filter_const;
+
 } main_config_t;
 
 #endif /* DATATYPES_H_ */

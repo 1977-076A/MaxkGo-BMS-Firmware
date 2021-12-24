@@ -62,8 +62,7 @@ void modOperationalStateInit(modPowerElectronicsPackStateTypedef *packState, mod
 	modOperationalStateNotUsedResetDelay = HAL_GetTick();
 };
 
-void modOperationalStateTask(void) {
-	// modOperationalStateCurrentState=0;	
+void modOperationalStateTask(void) {	
 	switch(modOperationalStateCurrentState) {
 		case OP_STATE_INIT:
 			if(modPowerStateChargerDetected()) {																		// Check to detect charger
@@ -110,7 +109,11 @@ void modOperationalStateTask(void) {
 			if(modOperationalStatePackStatehandle->balanceActive){
 				modOperationalStateSetNewState(OP_STATE_BALANCING);	
 			}
-			modOperationalStateHandleChargerDisconnect(OP_STATE_POWER_DOWN);
+			if(modOperationalStateGeneralConfigHandle->BMSApplication == electricVehicle){
+				modOperationalStateHandleChargerDisconnect(OP_STATE_POWER_DOWN);
+			}else{
+				modOperationalStateHandleChargerDisconnect(OP_STATE_INIT);
+			}
 			modPowerElectronicsSetCharge(true);
 			if(modOperationalStatePackStatehandle->packCurrent >= 0.5f || modOperationalStatePackStatehandle->packCurrent >= modOperationalStateGeneralConfigHandle->chargerEnabledThreshold){
 				modPowerElectronicsSetChargePFET(true);
@@ -137,6 +140,9 @@ void modOperationalStateTask(void) {
 			modOperationalStateDisplayData.StateOfCharge = modOperationalStateGeneralStateOfCharge->generalStateOfCharge;
 			modOperationalStateDisplayData.Current = fabs(modOperationalStatePackStatehandle->packCurrent);
 			modOperationalStateDisplayData.ChargerVoltage = fabs(modOperationalStatePackStatehandle->chargerVoltage);
+			modOperationalStateDisplayData.CellMismatch = fabs(modOperationalStatePackStatehandle->cellVoltageMisMatch);
+			modOperationalStateDisplayData.LowestCellVoltage = fabs(modOperationalStatePackStatehandle->cellVoltageLow);
+			modOperationalStateDisplayData.HighestCellVoltage = fabs(modOperationalStatePackStatehandle->cellVoltageHigh);
 			modDisplayShowInfo(DISP_MODE_CHARGE,modOperationalStateDisplayData);
 			break;
 		case OP_STATE_PRE_CHARGE:
@@ -356,7 +362,11 @@ void modOperationalStateTask(void) {
 				modOperationalStateChargedTimeout = HAL_GetTick();
 			};
 		
-			modOperationalStateHandleChargerDisconnect(OP_STATE_POWER_DOWN);
+			if(modOperationalStateGeneralConfigHandle->BMSApplication == electricVehicle){
+				modOperationalStateHandleChargerDisconnect(OP_STATE_POWER_DOWN);
+			}else{
+				modOperationalStateHandleChargerDisconnect(OP_STATE_INIT);
+			}
 			if(modOperationalStatePackStatehandle->chargeAllowed){
 				modPowerElectronicsSetCharge(true);
 				if(modOperationalStatePackStatehandle->packCurrent >= 0.5f || modOperationalStatePackStatehandle->packCurrent >= modOperationalStateGeneralConfigHandle->chargerEnabledThreshold){
@@ -389,7 +399,8 @@ void modOperationalStateTask(void) {
 			modOperationalStateUpdateStates();
 			modOperationalStateDisplayData.StateOfCharge = modOperationalStateGeneralStateOfCharge->generalStateOfCharge;
 			modOperationalStateDisplayData.CellMismatch = fabs(modOperationalStatePackStatehandle->cellVoltageMisMatch);
-			modOperationalStateDisplayData.AverageCellVoltage = fabs(modOperationalStatePackStatehandle->cellVoltageAverage);
+			modOperationalStateDisplayData.LowestCellVoltage = fabs(modOperationalStatePackStatehandle->cellVoltageLow);
+			modOperationalStateDisplayData.HighestCellVoltage = fabs(modOperationalStatePackStatehandle->cellVoltageHigh);
 			modDisplayShowInfo(DISP_MODE_BALANCING,modOperationalStateDisplayData);
 			modEffectChangeState(STAT_LED_POWER,STAT_BLINKSHORTLONG_100_20);								// Indicate balancing
 			break;
@@ -453,7 +464,6 @@ void modOperationalStateTask(void) {
 	if((modOperationalStatePackStatehandle->packOperationalCellState == PACK_STATE_ERROR_HARD_CELLVOLTAGE || modOperationalStatePackStatehandle->packOperationalCellState == PACK_STATE_ERROR_TEMPERATURE) && (modOperationalStatePackStatehandle->packOperationalCellState != packOperationalCellStateLastErrorState) && !modOperationalStateForceOn){
 		packOperationalCellStateLastErrorState = modOperationalStatePackStatehandle->packOperationalCellState; // Meganism to make error situation only trigger once
 		modOperationalStateSetNewState(OP_STATE_ERROR);
-		// modOperationalStateSetNewState(OP_STATE_PRE_CHARGE);
 		modOperationalStateUpdateStates();		
 	}
 	
@@ -464,15 +474,8 @@ void modOperationalStateTask(void) {
 		modOperationalStateSetNewState(OP_STATE_ERROR);	
 		modOperationalStateUpdateStates();
 	}
-
-	if (modOperationalStateGeneralConfigHandle->buzzerSignalSource && ((modOperationalStateGeneralStateOfCharge->generalStateOfCharge < modOperationalStateGeneralConfigHandle->buzzerThreshold)))
-	{
-		if (STAT_RESET == modEffectGetState(STAT_BUZZER))  // lowest priority
-		{
-			modEffectChangeState(STAT_BUZZER, STAT_DIDI); // Indicate LOW voltage
-		}
-	}
-
+	
+	
 	// Move the button pressed state to the status struct
 	modOperationalStatePackStatehandle->powerOnLongButtonPress = modPowerStateGetLongButtonPressState(); 
 	

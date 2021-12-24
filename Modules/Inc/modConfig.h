@@ -126,8 +126,8 @@ typedef struct {
 	uint32_t	NTCTopResistor[modConfigNoOfNTCTypes];                               // NTC Pullup resistor value
 	uint32_t	NTC25DegResistance[modConfigNoOfNTCTypes];                           // NTC resistance at 25 degree
 	uint16_t	NTCBetaFactor[modConfigNoOfNTCTypes];                                // NTC Beta factor
-	uint8_t		humidityICType;			
-	uint8_t		buzzerThreshold;                                                   // The buzzer will make a sound if the voltage of the battery is below this threshold.
+	uint8_t		humidityICType;	
+	uint8_t		BMSApplication;																													// Humidity sensor IC type
 } modConfigGeneralConfigStructTypedef;
 
 modConfigGeneralConfigStructTypedef* modConfigInit(void);
