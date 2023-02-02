@@ -5,17 +5,17 @@
 	This file is part of the DieBieMS/ENNOID-BMS firmware.
 
 	The DieBieMS/ENNOID-BMS firmware is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    The DieBieMS/ENNOID-BMS firmware is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	The DieBieMS/ENNOID-BMS firmware is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "modConfig.h"
@@ -84,7 +84,7 @@ void modconfigHardwareLimitsApply(modConfigGeneralConfigStructTypedef *configLoc
 			}
 		}
 		else
-		{ //Odd number of cells in series
+		{ // Odd number of cells in series
 			configLocation->noOfCellsPerModule = (configLocation->noOfCellsSeries / (configLocation->cellMonitorICCount / configLocation->noOfParallelModules)) + 1;
 
 			configLocation->lastICNoOfCells = configLocation->noOfCellsSeries % configLocation->noOfCellsPerModule; // This contains the last cells number monitored by the last serie IC
@@ -524,8 +524,8 @@ void modConfigLoadDefaultConfig(modConfigGeneralConfigStructTypedef *configLocat
 	configLocation->buzzerThreshold = 15; // voltage threshold to active the buzzer
 
 #elif ENNOID_SS_24
-	configLocation->noOfCellsSeries = 24;										// Total number of cells in series in the battery pack
-	configLocation->noOfCellsParallel = 10;										// Number of cells in parallel
+	configLocation->noOfCellsSeries = 12;										// Total number of cells in series in the battery pack
+	configLocation->noOfCellsParallel = 1;										// Number of cells in parallel
 	configLocation->noOfParallelModules = 1;									// Number of parallel modules
 	configLocation->batteryCapacity = 22.00f;									// XXAh battery
 	configLocation->cellHardUnderVoltage = 2.30f;								// Worst case X.XXV as lowest cell voltage
@@ -588,7 +588,7 @@ void modConfigLoadDefaultConfig(modConfigGeneralConfigStructTypedef *configLocat
 	configLocation->CANID = 10;													// CAN ID for CAN communication.
 	configLocation->CANIDStyle = CANIDStyleVESC;								// CAN ID default Style.
 	configLocation->canBusSpeed = canSpeedBaud500k;								// 500k CAN baud
-	configLocation->emitStatusOverCAN = false;									// Send status over can.
+	configLocation->emitStatusOverCAN = true;									// Send status over can.
 	configLocation->emitStatusProtocol = canEmitProtocolVESC;					// Can emit protocol set to MG style for backwards compatibility
 	configLocation->tempEnableMaskBMS = 0x0001;									// Bitwise select what sensor to enable for the BMS (internal sensors).
 	configLocation->tempEnableMaskBattery = 0xFFFF;								// Bitwise select what sensor to enable for the battery (external sensors).
